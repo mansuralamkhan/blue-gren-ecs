@@ -1,0 +1,39 @@
+name: Terraform CI/CD
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: 'Target environment to deploy'
+        required: false
+        default: ''
+  env:
+    TF_VAR_target_environment: ${{ github.event.inputs.target_environment ||''}}
+  
+  jobs:
+    terraform:
+      runs-on: ubunut-latest
+      environment: production
+    
+      steps:
+        - name: Checkout the code
+          uses: actions/checkout@v4
+        - name: setup terraform 
+          uses: hashicorp/setup-terraform@v3
+          with:
+            terraform_version: 1.5.0
+        - name: Configure AWS credentials
+          uses: aws-actions/configure-aws-credentials@v4
+          with:
+            aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+            aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+            aws-region: us-east-1
+
+        - name: Terraform INIt
+          run: terraform init
+        - name: Terraform plan
+          run: terraform plan - var="target_environment=${{env.TF_VAR_target_environment }}"
+        - name: Terraform Apply
+          run: terraform apply -auto-approve -var="target_environment=${{var.TF_VAR_target_environmetn}}"
